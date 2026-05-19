@@ -1,0 +1,168 @@
+from pathlib import Path
+
+import pandas as pd
+from sqlalchemy import text
+from sqlalchemy.engine import Engine
+
+from config import (
+    CORE_FILES,
+    CSV_FILES,
+    DATA_DIR,
+    ETL_CHUNKSIZE,
+    ETL_SCHEMA,
+    FORCE_RELOAD_STAGING,
+    LARGE_TABLES,
+    validate_config,
+)
+from db import get_engine, run_sql_file
+
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+STAGING_SQL = PROJECT_ROOT / "sql" / "01_schema_staging.sql"
+
+DATE_COLUMNS = {
+    "transaction_date",
+    "redemption_date",
+    "start_date",
+    "end_date",
+}
+
+TIMESTAMP_COLUMNS = {
+    "transaction_timestamp",
+    "transaction_datetime",
+}
+
+BOOLEAN_COLUMNS = {
+    "sales_value_is_possible_outlier",
+    "quantity_is_possible_outlier",
+    "retail_disc_is_possible_outlier",
+    "coupon_disc_is_possible_outlier",
+    "quantity_is_invalid",
+    "coupon_was_used",
+    "retail_discount_was_applied",
+}
+
+
+def confirm_destructive_reload() -> None:
+    tables = ", ".join(CSV_FILES.keys())
+    print("FORCE_RELOAD_STAGING=true was detected.")
+    print(f"This will truncate these staging tables in schema {ETL_SCHEMA}: {tables}")
+    response = input("Type TRUNCATE STAGING to approve this destructive reload: ")
+    if response != "TRUNCATE STAGING":
+        raise RuntimeError("Staging reload was not approved. Aborting.")
+
+
+def normalize_chunk(chunk: pd.DataFrame) -> pd.DataFrame:
+    chunk = chunk.copy()
+
+    for column in DATE_COLUMNS.intersection(chunk.columns):
+        chunk[column] = pd.to_datetime(chunk[column], errors="coerce").dt.date
+
+    for column in TIMESTAMP_COLUMNS.intersection(chunk.columns):
+        chunk[column] = pd.to_datetime(chunk[column], errors="coerce")
+
+    for column in BOOLEAN_COLUMNS.intersection(chunk.columns):
+        chunk[column] = chunk[column].map(normalize_boolean)
+
+    return chunk.where(pd.notnull(chunk), None)
+
+
+def normalize_boolean(value):
+    if pd.isna(value):
+        return None
+
+    if isinstance(value, bool):
+        return value
+
+    normalized = str(value).strip().lower()
+    if normalized in {"true", "t", "1", "yes", "y"}:
+        return True
+    if normalized in {"false", "f", "0", "no", "n"}:
+        return False
+
+    return None
+
+
+def truncate_staging_tables(engine: Engine) -> None:
+    confirm_destructive_reload()
+
+    with engine.begin() as conn:
+        for table_name in CSV_FILES:
+            conn.execute(text(f"TRUNCATE TABLE {ETL_SCHEMA}.{table_name}"))
+            print(f"Truncated {ETL_SCHEMA}.{table_name}")
+
+
+def table_row_count(engine: Engine, table_name: str) -> int:
+    with engine.begin() as conn:
+        result = conn.execute(text(f"SELECT COUNT(*) FROM {ETL_SCHEMA}.{table_name}"))
+        return int(result.scalar_one())
+
+
+def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, chunk_number: int) -> int:
+    normalized_chunk = normalize_chunk(chunk)
+    normalized_chunk.to_sql(
+        table_name,
+        engine,
+        schema=ETL_SCHEMA,
+        if_exists="append",
+        index=False,
+        method="multi",
+    )
+
+    row_count = len(normalized_chunk)
+    print(f"Loaded {row_count:,} rows into {ETL_SCHEMA}.{table_name} from chunk {chunk_number}")
+    return row_count
+
+
+def load_csv_file(engine: Engine, table_name: str, file_path: Path) -> None:
+    print(f"Loading {file_path.name} into {ETL_SCHEMA}.{table_name}")
+    total_rows = 0
+
+    if table_name in LARGE_TABLES:
+        reader = pd.read_csv(file_path, chunksize=ETL_CHUNKSIZE)
+        for chunk_number, chunk in enumerate(reader, start=1):
+            total_rows += load_dataframe_chunk(engine, table_name, chunk, chunk_number)
+    else:
+        chunk = pd.read_csv(file_path)
+        total_rows = load_dataframe_chunk(engine, table_name, chunk, 1)
+
+    final_count = table_row_count(engine, table_name)
+    print(f"Finished {ETL_SCHEMA}.{table_name}: loaded {total_rows:,} rows; table count is {final_count:,}")
+
+
+def validate_source_files() -> None:
+    missing_core_files = [
+        file_name for file_name in CORE_FILES if not (DATA_DIR / file_name).exists()
+    ]
+    if missing_core_files:
+        raise FileNotFoundError(f"Missing required core CSV files: {missing_core_files}")
+
+
+def main() -> None:
+    validate_config()
+    validate_source_files()
+
+    print(f"Using schema: {ETL_SCHEMA}")
+    print(f"Using data directory: {DATA_DIR}")
+    print("Connecting to Azure PostgreSQL...")
+    engine = get_engine()
+
+    print(f"Creating staging schema and tables from {STAGING_SQL}")
+    run_sql_file(engine, STAGING_SQL)
+
+    if FORCE_RELOAD_STAGING:
+        truncate_staging_tables(engine)
+
+    for table_name, file_name in CSV_FILES.items():
+        file_path = DATA_DIR / file_name
+        if not file_path.exists():
+            print(f"WARNING: optional file not found, skipping: {file_path}")
+            continue
+
+        load_csv_file(engine, table_name, file_path)
+
+    print("Staging load complete. Holiday staging is intentionally not loaded yet.")
+
+
+if __name__ == "__main__":
+    main()
