@@ -9,6 +9,7 @@ from db import get_engine, run_sql_file
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 DWH_SQL = PROJECT_ROOT / "sql" / "02_dimensions_facts.sql"
+INDEXES_VIEWS_SQL = PROJECT_ROOT / "sql" / "03_indexes_views.sql"
 
 DIMENSION_TABLES = [
     "dim_household",
@@ -88,6 +89,9 @@ def main() -> None:
 
     print(f"Building dimensions and facts from {DWH_SQL}")
     run_sql_file(engine, DWH_SQL)
+
+    print(f"Creating indexes and analytics views from {INDEXES_VIEWS_SQL}")
+    run_sql_file(engine, INDEXES_VIEWS_SQL)
 
     print_table_counts(engine, DIMENSION_TABLES, "Dimension")
     print_table_counts(engine, FACT_TABLES, "Fact")
