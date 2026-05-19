@@ -95,11 +95,12 @@ CREATE TABLE IF NOT EXISTS retail_dw.stg_basket_items_for_mba (
     product_type TEXT
 );
 
--- Placeholder only. Holiday loading will be implemented after the exact source filename is confirmed.
+-- Proposed federal holidays are text ranges, so the source date field is staged as text.
 CREATE TABLE IF NOT EXISTS retail_dw.stg_holidays (
-    holiday_date DATE,
-    holiday_name TEXT,
-    holiday_type TEXT
+    "date" TEXT,
+    date_definition TEXT,
+    official_name TEXT,
+    details TEXT
 );
 
 ALTER TABLE IF EXISTS retail_dw.stg_products ADD COLUMN IF NOT EXISTS manufacturer_id BIGINT;
@@ -117,3 +118,8 @@ ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS kids_c
 
 ALTER TABLE IF EXISTS retail_dw.stg_basket_items_for_mba ADD COLUMN IF NOT EXISTS product_category TEXT;
 ALTER TABLE IF EXISTS retail_dw.stg_basket_items_for_mba ADD COLUMN IF NOT EXISTS product_type TEXT;
+
+ALTER TABLE IF EXISTS retail_dw.stg_holidays ADD COLUMN IF NOT EXISTS "date" TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_holidays ADD COLUMN IF NOT EXISTS date_definition TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_holidays ADD COLUMN IF NOT EXISTS official_name TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_holidays ADD COLUMN IF NOT EXISTS details TEXT;

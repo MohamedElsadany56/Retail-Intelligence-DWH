@@ -26,7 +26,11 @@ promotions_clean.csv
 transactions_clean.csv
 ```
 
-Holiday staging exists as a placeholder. The holiday load is intentionally not implemented until the exact holiday CSV filename is confirmed.
+Holiday staging uses `HOLIDAYS_FILE`, which can point outside `DATA_DIR`. For the current local setup:
+
+```text
+/home/elsadany/Downloads/proposed_federal_holidays.csv
+```
 
 ## Simple Architecture
 
@@ -66,6 +70,7 @@ Azure_DB_USER=
 Azure_DB_PASSWORD=
 ETL_SCHEMA=retail_dw
 DATA_DIR=/content/drive/MyDrive/complete_journey_data/preprocessed
+HOLIDAYS_FILE=/home/elsadany/Downloads/proposed_federal_holidays.csv
 ETL_CHUNKSIZE=100000
 FORCE_RELOAD_STAGING=false
 FORCE_RELOAD_FACT=false

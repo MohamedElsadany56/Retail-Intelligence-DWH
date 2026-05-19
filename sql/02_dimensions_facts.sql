@@ -62,6 +62,10 @@ CREATE TABLE IF NOT EXISTS retail_dw.dim_coupon (
 CREATE TABLE IF NOT EXISTS retail_dw.dim_holiday (
     holiday_key BIGSERIAL PRIMARY KEY,
     holiday_date DATE UNIQUE,
+    date_text TEXT,
+    date_definition TEXT,
+    official_name TEXT,
+    details TEXT,
     holiday_name TEXT,
     holiday_type TEXT
 );
@@ -145,6 +149,11 @@ ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS product_cat
 ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS product_type TEXT;
 ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS package_size TEXT;
 
+ALTER TABLE IF EXISTS retail_dw.dim_holiday ADD COLUMN IF NOT EXISTS date_text TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_holiday ADD COLUMN IF NOT EXISTS date_definition TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_holiday ADD COLUMN IF NOT EXISTS official_name TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_holiday ADD COLUMN IF NOT EXISTS details TEXT;
+
 INSERT INTO retail_dw.dim_household (
     household_key,
     household_id,
@@ -216,10 +225,14 @@ ON CONFLICT (coupon_key) DO NOTHING;
 INSERT INTO retail_dw.dim_holiday (
     holiday_key,
     holiday_date,
+    date_text,
+    date_definition,
+    official_name,
+    details,
     holiday_name,
     holiday_type
 )
-VALUES (0, NULL, 'Unknown', 'Unknown')
+VALUES (0, NULL, 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown')
 ON CONFLICT (holiday_key) DO NOTHING;
 
 INSERT INTO retail_dw.dim_household (
@@ -416,18 +429,29 @@ ON CONFLICT (coupon_upc) DO UPDATE SET
 
 INSERT INTO retail_dw.dim_holiday (
     holiday_date,
+    date_text,
+    date_definition,
+    official_name,
+    details,
     holiday_name,
     holiday_type
 )
 SELECT DISTINCT
-    h.holiday_date,
-    h.holiday_name,
-    h.holiday_type
+    NULL::DATE AS holiday_date,
+    h."date" AS date_text,
+    h.date_definition,
+    h.official_name,
+    h.details,
+    h.official_name AS holiday_name,
+    h.date_definition AS holiday_type
 FROM retail_dw.stg_holidays h
-WHERE h.holiday_date IS NOT NULL
-ON CONFLICT (holiday_date) DO UPDATE SET
-    holiday_name = EXCLUDED.holiday_name,
-    holiday_type = EXCLUDED.holiday_type;
+WHERE h.official_name IS NOT NULL
+    AND NOT EXISTS (
+        SELECT 1
+        FROM retail_dw.dim_holiday d
+        WHERE d.official_name IS NOT DISTINCT FROM h.official_name
+            AND d.date_text IS NOT DISTINCT FROM h."date"
+    );
 
 INSERT INTO retail_dw.fact_transaction_item (
     basket_id,

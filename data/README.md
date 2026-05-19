@@ -18,4 +18,8 @@ promotions_clean.csv
 transactions_clean.csv
 ```
 
-Holiday loading is not enabled yet. The exact holiday CSV filename must be confirmed first.
+The proposed federal holiday file is loaded from `HOLIDAYS_FILE`. The current expected local path is:
+
+```text
+/home/elsadany/Downloads/proposed_federal_holidays.csv
+```

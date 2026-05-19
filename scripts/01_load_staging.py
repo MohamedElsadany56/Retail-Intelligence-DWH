@@ -13,6 +13,7 @@ from config import (
     ETL_CHUNKSIZE,
     ETL_SCHEMA,
     FORCE_RELOAD_STAGING,
+    get_csv_path,
     validate_config,
 )
 from db import get_engine, run_sql_file
@@ -211,7 +212,7 @@ def main() -> None:
         truncate_staging_tables(engine)
 
     for table_name, file_name in CSV_FILES.items():
-        file_path = DATA_DIR / file_name
+        file_path = get_csv_path(table_name)
         if not file_path.exists():
             print(f"WARNING: optional file not found, skipping: {file_path}")
             continue

@@ -14,6 +14,7 @@ AZURE_DB_PASSWORD = os.getenv("Azure_DB_PASSWORD")
 
 ETL_SCHEMA = os.getenv("ETL_SCHEMA", "retail_dw")
 DATA_DIR = Path(os.getenv("DATA_DIR", "/content/drive/MyDrive/complete_journey_data/preprocessed"))
+HOLIDAYS_FILE = Path(os.getenv("HOLIDAYS_FILE", "/home/elsadany/Downloads/proposed_federal_holidays.csv"))
 ETL_CHUNKSIZE = int(os.getenv("ETL_CHUNKSIZE", "100000"))
 
 FORCE_RELOAD_STAGING = os.getenv("FORCE_RELOAD_STAGING", "false").lower() == "true"
@@ -35,6 +36,11 @@ CSV_FILES = {
     "stg_coupon_redemptions": "coupon_redemptions_clean.csv",
     "stg_promotions": "promotions_clean.csv",
     "stg_basket_items_for_mba": "basket_items_for_mba.csv",
+    "stg_holidays": "proposed_federal_holidays.csv",
+}
+
+CSV_PATH_OVERRIDES = {
+    "stg_holidays": HOLIDAYS_FILE,
 }
 
 CSV_COLUMNS = {
@@ -118,6 +124,12 @@ CSV_COLUMNS = {
         "product_category",
         "product_type",
     ],
+    "stg_holidays": [
+        "date",
+        "date_definition",
+        "official_name",
+        "details",
+    ],
 }
 
 CORE_FILES = {
@@ -133,3 +145,7 @@ def validate_config() -> None:
 
     if not DATA_DIR.exists():
         raise RuntimeError(f"DATA_DIR does not exist: {DATA_DIR}")
+
+
+def get_csv_path(table_name: str) -> Path:
+    return CSV_PATH_OVERRIDES.get(table_name, DATA_DIR / CSV_FILES[table_name])
