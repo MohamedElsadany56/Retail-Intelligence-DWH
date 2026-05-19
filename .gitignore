@@ -1,0 +1,30 @@
+# Environment files
+.env
+.env.*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Data files
+data/raw/
+data/processed/
+*.csv
+*.xlsx
+*.parquet
+
+# Outputs
+outputs/*.csv
+outputs/*.xlsx
+outputs/*.parquet
+
+# OS files
+.DS_Store
+Thumbs.db
