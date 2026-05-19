@@ -110,13 +110,7 @@ The validation script prints query results and saves:
 outputs/dwh_validation_report.csv
 ```
 
-## Safety Notes
 
-- Do not commit `.env`.
-- Do not commit real CSV data.
-- Do not commit validation or mining output files.
-- Keep `FORCE_RELOAD_STAGING=false` and `FORCE_RELOAD_FACT=false` unless a destructive reload is explicitly approved.
-- The schema name for this phase is `retail_dw`.
 
 ## Next Phase
 
