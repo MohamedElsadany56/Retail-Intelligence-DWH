@@ -245,7 +245,7 @@ INSERT INTO retail_dw.dim_household (
     household_comp,
     kids_count
 )
-SELECT DISTINCT
+SELECT
     d.household_id,
     d.age,
     d.income,
@@ -254,8 +254,24 @@ SELECT DISTINCT
     d.household_size,
     d.household_comp,
     d.kids_count
-FROM retail_dw.stg_demographics d
-WHERE d.household_id IS NOT NULL
+FROM (
+    SELECT
+        stg.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY stg.household_id
+            ORDER BY
+                stg.age,
+                stg.income,
+                stg.home_ownership,
+                stg.marital_status,
+                stg.household_size,
+                stg.household_comp,
+                stg.kids_count
+        ) AS row_number
+    FROM retail_dw.stg_demographics stg
+    WHERE stg.household_id IS NOT NULL
+) d
+WHERE d.row_number = 1
 ON CONFLICT (household_id) DO UPDATE SET
     age = EXCLUDED.age,
     income = EXCLUDED.income,
@@ -280,7 +296,7 @@ INSERT INTO retail_dw.dim_product (
     product_type,
     package_size
 )
-SELECT DISTINCT
+SELECT
     p.product_id,
     p.manufacturer_id,
     p.department,
@@ -288,8 +304,23 @@ SELECT DISTINCT
     p.product_category,
     p.product_type,
     p.package_size
-FROM retail_dw.stg_products p
-WHERE p.product_id IS NOT NULL
+FROM (
+    SELECT
+        stg.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY stg.product_id
+            ORDER BY
+                stg.manufacturer_id,
+                stg.department,
+                stg.brand,
+                stg.product_category,
+                stg.product_type,
+                stg.package_size
+        ) AS row_number
+    FROM retail_dw.stg_products stg
+    WHERE stg.product_id IS NOT NULL
+) p
+WHERE p.row_number = 1
 ON CONFLICT (product_id) DO UPDATE SET
     manufacturer_id = EXCLUDED.manufacturer_id,
     department = EXCLUDED.department,
@@ -379,7 +410,7 @@ INSERT INTO retail_dw.dim_campaign (
     end_date,
     duration_days
 )
-SELECT DISTINCT
+SELECT
     cd.campaign_id,
     cd.campaign_type,
     cd.start_day,
@@ -387,8 +418,20 @@ SELECT DISTINCT
     cd.start_date,
     cd.end_date,
     cd.duration_days
-FROM retail_dw.stg_campaign_descriptions cd
-WHERE cd.campaign_id IS NOT NULL
+FROM (
+    SELECT
+        stg.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY stg.campaign_id
+            ORDER BY
+                stg.start_date,
+                stg.end_date,
+                stg.campaign_type
+        ) AS row_number
+    FROM retail_dw.stg_campaign_descriptions stg
+    WHERE stg.campaign_id IS NOT NULL
+) cd
+WHERE cd.row_number = 1
 ON CONFLICT (campaign_id) DO UPDATE SET
     campaign_type = EXCLUDED.campaign_type,
     start_day = EXCLUDED.start_day,
@@ -417,12 +460,23 @@ INSERT INTO retail_dw.dim_coupon (
     product_id,
     campaign_id
 )
-SELECT DISTINCT
+SELECT
     c.coupon_upc,
     c.product_id,
     c.campaign_id
-FROM retail_dw.stg_coupons c
-WHERE c.coupon_upc IS NOT NULL
+FROM (
+    SELECT
+        stg.*,
+        ROW_NUMBER() OVER (
+            PARTITION BY stg.coupon_upc
+            ORDER BY
+                stg.campaign_id,
+                stg.product_id
+        ) AS row_number
+    FROM retail_dw.stg_coupons stg
+    WHERE stg.coupon_upc IS NOT NULL
+) c
+WHERE c.row_number = 1
 ON CONFLICT (coupon_upc) DO UPDATE SET
     product_id = EXCLUDED.product_id,
     campaign_id = EXCLUDED.campaign_id;
