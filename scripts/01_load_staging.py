@@ -1,4 +1,5 @@
 from pathlib import Path
+import time
 
 import pandas as pd
 from sqlalchemy import text
@@ -41,6 +42,18 @@ BOOLEAN_COLUMNS = {
     "coupon_was_used",
     "retail_discount_was_applied",
 }
+
+
+def format_duration(seconds: float) -> str:
+    seconds = max(0, int(seconds))
+    hours, remainder = divmod(seconds, 3600)
+    minutes, seconds = divmod(remainder, 60)
+
+    if hours:
+        return f"{hours}h {minutes}m {seconds}s"
+    if minutes:
+        return f"{minutes}m {seconds}s"
+    return f"{seconds}s"
 
 
 def confirm_destructive_reload() -> None:
@@ -109,7 +122,14 @@ def validate_csv_header(table_name: str, file_path: Path) -> None:
         )
 
 
-def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, chunk_number: int) -> int:
+def count_csv_rows(file_path: Path) -> int:
+    with file_path.open("rb") as file:
+        line_count = sum(1 for _ in file)
+
+    return max(line_count - 1, 0)
+
+
+def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame) -> int:
     normalized_chunk = normalize_chunk(chunk)
     normalized_chunk.to_sql(
         table_name,
@@ -120,7 +140,6 @@ def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, c
     )
 
     row_count = len(normalized_chunk)
-    print(f"Loaded {row_count:,} rows into {ETL_SCHEMA}.{table_name} from chunk {chunk_number}")
     return row_count
 
 
@@ -136,14 +155,36 @@ def load_csv_file(engine: Engine, table_name: str, file_path: Path) -> None:
         return
 
     print(f"Loading {file_path.name} into {ETL_SCHEMA}.{table_name}")
+    expected_rows = count_csv_rows(file_path)
     total_rows = 0
+    table_start_time = time.monotonic()
 
     reader = pd.read_csv(file_path, chunksize=ETL_CHUNKSIZE)
     for chunk_number, chunk in enumerate(reader, start=1):
-        total_rows += load_dataframe_chunk(engine, table_name, chunk, chunk_number)
+        chunk_start_time = time.monotonic()
+        loaded_rows = load_dataframe_chunk(engine, table_name, chunk)
+        total_rows += loaded_rows
+        chunk_elapsed = time.monotonic() - chunk_start_time
+        total_elapsed = time.monotonic() - table_start_time
+
+        rows_remaining = max(expected_rows - total_rows, 0)
+        rows_per_second = total_rows / total_elapsed if total_elapsed else 0
+        estimated_remaining = rows_remaining / rows_per_second if rows_per_second else 0
+
+        print(
+            f"Loaded chunk {chunk_number} into {ETL_SCHEMA}.{table_name}: "
+            f"{loaded_rows:,} rows this batch, {total_rows:,}/{expected_rows:,} total. "
+            f"Batch time: {format_duration(chunk_elapsed)}. "
+            f"Elapsed: {format_duration(total_elapsed)}. "
+            f"ETA: {format_duration(estimated_remaining)}."
+        )
 
     final_count = table_row_count(engine, table_name)
-    print(f"Finished {ETL_SCHEMA}.{table_name}: loaded {total_rows:,} rows; table count is {final_count:,}")
+    total_elapsed = time.monotonic() - table_start_time
+    print(
+        f"Finished {ETL_SCHEMA}.{table_name}: loaded {total_rows:,} rows "
+        f"in {format_duration(total_elapsed)}; table count is {final_count:,}"
+    )
 
 
 def validate_source_files() -> None:
