@@ -3,24 +3,24 @@ CREATE SCHEMA IF NOT EXISTS retail_dw;
 CREATE TABLE IF NOT EXISTS retail_dw.dim_household (
     household_key BIGSERIAL PRIMARY KEY,
     household_id BIGINT UNIQUE,
-    age_desc TEXT,
-    marital_status_code TEXT,
-    income_desc TEXT,
-    homeowner_desc TEXT,
-    hh_comp_desc TEXT,
-    household_size_desc TEXT,
-    kid_category_desc TEXT
+    age TEXT,
+    income TEXT,
+    home_ownership TEXT,
+    marital_status TEXT,
+    household_size TEXT,
+    household_comp TEXT,
+    kids_count TEXT
 );
 
 CREATE TABLE IF NOT EXISTS retail_dw.dim_product (
     product_key BIGSERIAL PRIMARY KEY,
     product_id BIGINT UNIQUE,
-    manufacturer TEXT,
+    manufacturer_id BIGINT,
     department TEXT,
     brand TEXT,
-    commodity_desc TEXT,
-    sub_commodity_desc TEXT,
-    curr_size_of_product TEXT
+    product_category TEXT,
+    product_type TEXT,
+    package_size TEXT
 );
 
 CREATE TABLE IF NOT EXISTS retail_dw.dim_store (
@@ -132,16 +132,29 @@ CREATE TABLE IF NOT EXISTS retail_dw.fact_product_promotion (
     mailer_location TEXT
 );
 
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS age TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS income TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS home_ownership TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS marital_status TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS household_size TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS household_comp TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_household ADD COLUMN IF NOT EXISTS kids_count TEXT;
+
+ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS manufacturer_id BIGINT;
+ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS product_category TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS product_type TEXT;
+ALTER TABLE IF EXISTS retail_dw.dim_product ADD COLUMN IF NOT EXISTS package_size TEXT;
+
 INSERT INTO retail_dw.dim_household (
     household_key,
     household_id,
-    age_desc,
-    marital_status_code,
-    income_desc,
-    homeowner_desc,
-    hh_comp_desc,
-    household_size_desc,
-    kid_category_desc
+    age,
+    income,
+    home_ownership,
+    marital_status,
+    household_size,
+    household_comp,
+    kids_count
 )
 VALUES (0, NULL, 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown')
 ON CONFLICT (household_key) DO NOTHING;
@@ -149,14 +162,14 @@ ON CONFLICT (household_key) DO NOTHING;
 INSERT INTO retail_dw.dim_product (
     product_key,
     product_id,
-    manufacturer,
+    manufacturer_id,
     department,
     brand,
-    commodity_desc,
-    sub_commodity_desc,
-    curr_size_of_product
+    product_category,
+    product_type,
+    package_size
 )
-VALUES (0, NULL, 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown')
+VALUES (0, NULL, NULL, 'Unknown', 'Unknown', 'Unknown', 'Unknown', 'Unknown')
 ON CONFLICT (product_key) DO NOTHING;
 
 INSERT INTO retail_dw.dim_store (store_key, store_id)
@@ -211,33 +224,33 @@ ON CONFLICT (holiday_key) DO NOTHING;
 
 INSERT INTO retail_dw.dim_household (
     household_id,
-    age_desc,
-    marital_status_code,
-    income_desc,
-    homeowner_desc,
-    hh_comp_desc,
-    household_size_desc,
-    kid_category_desc
+    age,
+    income,
+    home_ownership,
+    marital_status,
+    household_size,
+    household_comp,
+    kids_count
 )
 SELECT DISTINCT
     d.household_id,
-    d.age_desc,
-    d.marital_status_code,
-    d.income_desc,
-    d.homeowner_desc,
-    d.hh_comp_desc,
-    d.household_size_desc,
-    d.kid_category_desc
+    d.age,
+    d.income,
+    d.home_ownership,
+    d.marital_status,
+    d.household_size,
+    d.household_comp,
+    d.kids_count
 FROM retail_dw.stg_demographics d
 WHERE d.household_id IS NOT NULL
 ON CONFLICT (household_id) DO UPDATE SET
-    age_desc = EXCLUDED.age_desc,
-    marital_status_code = EXCLUDED.marital_status_code,
-    income_desc = EXCLUDED.income_desc,
-    homeowner_desc = EXCLUDED.homeowner_desc,
-    hh_comp_desc = EXCLUDED.hh_comp_desc,
-    household_size_desc = EXCLUDED.household_size_desc,
-    kid_category_desc = EXCLUDED.kid_category_desc;
+    age = EXCLUDED.age,
+    income = EXCLUDED.income,
+    home_ownership = EXCLUDED.home_ownership,
+    marital_status = EXCLUDED.marital_status,
+    household_size = EXCLUDED.household_size,
+    household_comp = EXCLUDED.household_comp,
+    kids_count = EXCLUDED.kids_count;
 
 INSERT INTO retail_dw.dim_household (household_id)
 SELECT DISTINCT t.household_id
@@ -247,30 +260,30 @@ ON CONFLICT (household_id) DO NOTHING;
 
 INSERT INTO retail_dw.dim_product (
     product_id,
-    manufacturer,
+    manufacturer_id,
     department,
     brand,
-    commodity_desc,
-    sub_commodity_desc,
-    curr_size_of_product
+    product_category,
+    product_type,
+    package_size
 )
 SELECT DISTINCT
     p.product_id,
-    p.manufacturer,
+    p.manufacturer_id,
     p.department,
     p.brand,
-    p.commodity_desc,
-    p.sub_commodity_desc,
-    p.curr_size_of_product
+    p.product_category,
+    p.product_type,
+    p.package_size
 FROM retail_dw.stg_products p
 WHERE p.product_id IS NOT NULL
 ON CONFLICT (product_id) DO UPDATE SET
-    manufacturer = EXCLUDED.manufacturer,
+    manufacturer_id = EXCLUDED.manufacturer_id,
     department = EXCLUDED.department,
     brand = EXCLUDED.brand,
-    commodity_desc = EXCLUDED.commodity_desc,
-    sub_commodity_desc = EXCLUDED.sub_commodity_desc,
-    curr_size_of_product = EXCLUDED.curr_size_of_product;
+    product_category = EXCLUDED.product_category,
+    product_type = EXCLUDED.product_type,
+    package_size = EXCLUDED.package_size;
 
 INSERT INTO retail_dw.dim_product (product_id)
 SELECT DISTINCT t.product_id

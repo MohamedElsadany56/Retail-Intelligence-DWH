@@ -6,12 +6,12 @@ from sqlalchemy.engine import Engine
 
 from config import (
     CORE_FILES,
+    CSV_COLUMNS,
     CSV_FILES,
     DATA_DIR,
     ETL_CHUNKSIZE,
     ETL_SCHEMA,
     FORCE_RELOAD_STAGING,
-    LARGE_TABLES,
     validate_config,
 )
 from db import get_engine, run_sql_file
@@ -98,6 +98,17 @@ def table_row_count(engine: Engine, table_name: str) -> int:
         return int(result.scalar_one())
 
 
+def validate_csv_header(table_name: str, file_path: Path) -> None:
+    expected_columns = CSV_COLUMNS[table_name]
+    actual_columns = list(pd.read_csv(file_path, nrows=0).columns)
+
+    if actual_columns != expected_columns:
+        raise RuntimeError(
+            "CSV header mismatch for "
+            f"{file_path.name}. Expected {expected_columns}, got {actual_columns}"
+        )
+
+
 def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, chunk_number: int) -> int:
     normalized_chunk = normalize_chunk(chunk)
     normalized_chunk.to_sql(
@@ -106,7 +117,6 @@ def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, c
         schema=ETL_SCHEMA,
         if_exists="append",
         index=False,
-        method="multi",
     )
 
     row_count = len(normalized_chunk)
@@ -115,16 +125,22 @@ def load_dataframe_chunk(engine: Engine, table_name: str, chunk: pd.DataFrame, c
 
 
 def load_csv_file(engine: Engine, table_name: str, file_path: Path) -> None:
+    validate_csv_header(table_name, file_path)
+
+    existing_rows = table_row_count(engine, table_name)
+    if existing_rows > 0 and not FORCE_RELOAD_STAGING:
+        print(
+            f"Skipping {ETL_SCHEMA}.{table_name}: table already has "
+            f"{existing_rows:,} rows. Set FORCE_RELOAD_STAGING=true to reload."
+        )
+        return
+
     print(f"Loading {file_path.name} into {ETL_SCHEMA}.{table_name}")
     total_rows = 0
 
-    if table_name in LARGE_TABLES:
-        reader = pd.read_csv(file_path, chunksize=ETL_CHUNKSIZE)
-        for chunk_number, chunk in enumerate(reader, start=1):
-            total_rows += load_dataframe_chunk(engine, table_name, chunk, chunk_number)
-    else:
-        chunk = pd.read_csv(file_path)
-        total_rows = load_dataframe_chunk(engine, table_name, chunk, 1)
+    reader = pd.read_csv(file_path, chunksize=ETL_CHUNKSIZE)
+    for chunk_number, chunk in enumerate(reader, start=1):
+        total_rows += load_dataframe_chunk(engine, table_name, chunk, chunk_number)
 
     final_count = table_row_count(engine, table_name)
     print(f"Finished {ETL_SCHEMA}.{table_name}: loaded {total_rows:,} rows; table count is {final_count:,}")

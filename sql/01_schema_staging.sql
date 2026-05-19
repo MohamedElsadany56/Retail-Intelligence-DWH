@@ -29,23 +29,23 @@ CREATE TABLE IF NOT EXISTS retail_dw.stg_transactions (
 
 CREATE TABLE IF NOT EXISTS retail_dw.stg_products (
     product_id BIGINT,
-    manufacturer TEXT,
+    manufacturer_id BIGINT,
     department TEXT,
     brand TEXT,
-    commodity_desc TEXT,
-    sub_commodity_desc TEXT,
-    curr_size_of_product TEXT
+    product_category TEXT,
+    product_type TEXT,
+    package_size TEXT
 );
 
 CREATE TABLE IF NOT EXISTS retail_dw.stg_demographics (
     household_id BIGINT,
-    age_desc TEXT,
-    marital_status_code TEXT,
-    income_desc TEXT,
-    homeowner_desc TEXT,
-    hh_comp_desc TEXT,
-    household_size_desc TEXT,
-    kid_category_desc TEXT
+    age TEXT,
+    income TEXT,
+    home_ownership TEXT,
+    marital_status TEXT,
+    household_size TEXT,
+    household_comp TEXT,
+    kids_count TEXT
 );
 
 CREATE TABLE IF NOT EXISTS retail_dw.stg_campaigns (
@@ -90,13 +90,9 @@ CREATE TABLE IF NOT EXISTS retail_dw.stg_promotions (
 CREATE TABLE IF NOT EXISTS retail_dw.stg_basket_items_for_mba (
     basket_id BIGINT,
     product_id BIGINT,
-    household_id BIGINT,
-    transaction_date DATE,
-    product_name TEXT,
     department TEXT,
-    commodity_desc TEXT,
-    quantity NUMERIC,
-    sales_value NUMERIC
+    product_category TEXT,
+    product_type TEXT
 );
 
 -- Placeholder only. Holiday loading will be implemented after the exact source filename is confirmed.
@@ -105,3 +101,19 @@ CREATE TABLE IF NOT EXISTS retail_dw.stg_holidays (
     holiday_name TEXT,
     holiday_type TEXT
 );
+
+ALTER TABLE IF EXISTS retail_dw.stg_products ADD COLUMN IF NOT EXISTS manufacturer_id BIGINT;
+ALTER TABLE IF EXISTS retail_dw.stg_products ADD COLUMN IF NOT EXISTS product_category TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_products ADD COLUMN IF NOT EXISTS product_type TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_products ADD COLUMN IF NOT EXISTS package_size TEXT;
+
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS age TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS income TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS home_ownership TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS marital_status TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS household_size TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS household_comp TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_demographics ADD COLUMN IF NOT EXISTS kids_count TEXT;
+
+ALTER TABLE IF EXISTS retail_dw.stg_basket_items_for_mba ADD COLUMN IF NOT EXISTS product_category TEXT;
+ALTER TABLE IF EXISTS retail_dw.stg_basket_items_for_mba ADD COLUMN IF NOT EXISTS product_type TEXT;
