@@ -193,11 +193,27 @@ button {
 .cart-panel {
   position: sticky;
   top: 94px;
+  max-height: calc(100vh - 132px);
   min-width: 0;
+  overflow-x: hidden;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--panel);
   box-shadow: var(--shadow);
+}
+
+.filters::-webkit-scrollbar,
+.cart-panel::-webkit-scrollbar {
+  width: 8px;
+}
+
+.filters::-webkit-scrollbar-thumb,
+.cart-panel::-webkit-scrollbar-thumb {
+  border-radius: 8px;
+  background: #c9d5ce;
 }
 
 .filters {
@@ -686,6 +702,8 @@ button {
   .cart-panel {
     position: static;
     grid-column: 1 / -1;
+    max-height: none;
+    overflow: visible;
   }
 }
 
@@ -712,6 +730,8 @@ button {
   .filters,
   .cart-panel {
     position: static;
+    max-height: none;
+    overflow: visible;
   }
 
   .product-grid {
