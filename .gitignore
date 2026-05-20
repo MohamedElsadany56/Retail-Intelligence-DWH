@@ -25,6 +25,7 @@ data/processed/
 outputs/*.csv
 outputs/*.xlsx
 outputs/*.parquet
+prototype/runtime/
 
 # OS files
 .DS_Store

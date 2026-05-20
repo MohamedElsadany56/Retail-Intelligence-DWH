@@ -1,0 +1,151 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>FreshCart Intelligence</title>
+    <link rel="preconnect" href="https://images.unsplash.com">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="brand-mark">FI</div>
+          <div>
+            <h1>FreshCart Intelligence</h1>
+            <span id="dataSource">Loading market baskets</span>
+          </div>
+        </div>
+
+        <div class="search-wrap">
+          <i data-lucide="search"></i>
+          <input id="searchInput" type="search" autocomplete="off" placeholder="Search groceries">
+        </div>
+
+        <button id="cartJump" class="cart-chip" type="button" aria-label="Open cart">
+          <i data-lucide="shopping-cart"></i>
+          <span id="cartChipCount">0</span>
+        </button>
+      </header>
+
+      <main class="dashboard">
+        <section class="metric-row" aria-label="Dashboard metrics">
+          <article class="metric-card">
+            <span>Subtotal</span>
+            <strong id="metricSubtotal">$0.00</strong>
+          </article>
+          <article class="metric-card accent-green">
+            <span>Cart Items</span>
+            <strong id="metricItems">0</strong>
+          </article>
+          <article class="metric-card accent-amber">
+            <span>Best Match</span>
+            <strong id="metricMatch">0%</strong>
+          </article>
+          <article class="metric-card accent-blue">
+            <span>Completed</span>
+            <strong id="metricOrders">0</strong>
+          </article>
+        </section>
+
+        <section class="workspace">
+          <aside class="filters" aria-label="Departments">
+            <div class="panel-heading">
+              <h2>Departments</h2>
+              <button id="refreshBtn" class="icon-button" type="button" aria-label="Refresh data">
+                <i data-lucide="refresh-cw"></i>
+              </button>
+            </div>
+            <div id="departmentList" class="department-list"></div>
+
+            <div class="orders-panel">
+              <div class="panel-heading compact">
+                <h2>Recent Orders</h2>
+              </div>
+              <div id="recentOrders" class="recent-orders"></div>
+            </div>
+          </aside>
+
+          <section class="product-area">
+            <div class="section-title">
+              <div>
+                <h2>Shop Products</h2>
+                <p id="catalogCount">Preparing catalog</p>
+              </div>
+              <div id="activeDepartment" class="active-filter">All</div>
+            </div>
+            <div id="productGrid" class="product-grid"></div>
+          </section>
+
+          <aside id="cartPanel" class="cart-panel" aria-label="Cart and recommendations">
+            <div class="panel-heading">
+              <h2>Cart</h2>
+              <button id="clearCartBtn" class="icon-button" type="button" aria-label="Clear cart">
+                <i data-lucide="trash-2"></i>
+              </button>
+            </div>
+            <div id="cartItems" class="cart-items"></div>
+
+            <div class="cart-summary">
+              <div>
+                <span>Subtotal</span>
+                <strong id="cartSubtotal">$0.00</strong>
+              </div>
+              <button id="checkoutBtn" class="primary-button" type="button" disabled>
+                <i data-lucide="credit-card"></i>
+                <span>Checkout</span>
+              </button>
+            </div>
+
+            <div class="recommendations">
+              <div class="panel-heading compact">
+                <h2>Recommended</h2>
+                <span id="recBadge">Live</span>
+              </div>
+              <div id="recommendationList" class="recommendation-list"></div>
+            </div>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <div id="checkoutModal" class="modal" aria-hidden="true">
+      <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="checkoutTitle">
+        <div class="panel-heading">
+          <h2 id="checkoutTitle">Complete Order</h2>
+          <button id="closeModalBtn" class="icon-button" type="button" aria-label="Close checkout">
+            <i data-lucide="x"></i>
+          </button>
+        </div>
+        <form id="checkoutForm" class="checkout-form">
+          <label>
+            <span>Name</span>
+            <input name="name" type="text" autocomplete="name" required>
+          </label>
+          <label>
+            <span>Phone</span>
+            <input name="phone" type="tel" autocomplete="tel" required>
+          </label>
+          <label>
+            <span>Delivery Address</span>
+            <textarea name="address" rows="3" required></textarea>
+          </label>
+          <div class="checkout-total">
+            <span>Total</span>
+            <strong id="checkoutTotal">$0.00</strong>
+          </div>
+          <button class="primary-button full" type="submit">
+            <i data-lucide="check-circle-2"></i>
+            <span>Place Order</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+  </body>
+</html>
